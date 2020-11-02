@@ -1,4 +1,4 @@
-Function Ping-FileSize($File, [switch]$Beep, [int]$Seconds = 2) {
+Function Get-FileSize($File, [switch]$Beep, [int]$Seconds = 2) {
     for ($i = 1; $i -le 1000; $i++) {
         $size = Get-ChildItem -LiteralPath $File | Select-Object -ExpandProperty Length
         if ($size -ne $last) { $last = $size }
