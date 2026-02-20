@@ -11,4 +11,5 @@ function Get-PdfFile {
     Get-ChildItem $Path -Filter *.pdf | Select-Object Name,
         @{n='JSON';e={Test-Path ('{0}\{1}.json' -f $_.Directory, $_.BaseName)}},
         @{n='TXT';e={Test-Path ('{0}\{1}.txt' -f $_.Directory, $_.BaseName)}}
+
 }

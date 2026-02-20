@@ -1,3 +1,4 @@
+# Pour transformer une date française en ISO
 function Format-Date {
     param (
         $StringDate,
