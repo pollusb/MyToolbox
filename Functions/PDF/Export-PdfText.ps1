@@ -9,7 +9,7 @@ function Get-PdfText {
     [CmdLetBinding()]
     param (
         $Path,
-        $Layout = '-layout',
+        $Layout = 'layout',
         $ProgramPath = 'pdftotext.exe', # Should be avail in PATH
         [switch]$PassThru,
         [switch]$Force
@@ -42,7 +42,7 @@ function Get-PdfText {
             } until ($finished)
         }
         #>
-        $arg = @($Layout, '-enc', 'UTF-8', '-eol', 'dos', $file.FullName)
+        $arg = @("-$Layout", '-enc', 'UTF-8', '-eol', 'dos', $file.FullName)
         Write-Verbose "$ProgramPath $($arg -join ' ')"
         & $ProgramPath $arg
         Get-ChildItem $textPath
