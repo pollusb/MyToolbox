@@ -7,12 +7,14 @@
 function Show-PdfData {
     [CmdLetBinding()]
     param (
-        $Path
+        $Path,
+        [switch]$InvokePdf
     )
 
     #region Private functions
 
     function Out-String2 {
+        # Vue compactée
         param (
             [Parameter(ValueFromPipeline)]
             $InputObject
@@ -26,38 +28,54 @@ function Show-PdfData {
 
     $file = Get-ChildItem -Path $Path | Select-Object -First 1
     $jsonFile = $file.FullName -replace 'pdf$','json'
-
-    <#$jsonFile = if ($file.Extension -ne '.json') {
-        '{0}\{1}.json' -f $file.Directory, $file.BaseName
-    }
-    else {
-        $file.FullName
-    }#>
-
     $json = Get-Content $jsonFile | ConvertFrom-Json
 
     Out-String2 ($json.Data | Select-Object -ExcludeProperty Accounts `
     | Format-Table -AutoSize)
 
+    $exclProp = @('Operations')
+    if (!$json.Data.IsCreditCard) { $exclProp += 'TotalRemittance' }
+
     foreach ($account in $json.Data.Accounts) {
-        Out-String2 ($account | Select-Object -ExcludeProperty Operations `
-        | Format-Table -AutoSize)
+        # Seulement s'il y a des opérations
+        if ($account.Operations.Count -gt 0){
+            Out-String2 ($account | Select-Object -ExcludeProperty $exclProp `
+            | Format-Table -AutoSize)            # Ajouter la ligne 0 pour faciliter la lecture
 
-        # Ajouter la ligne 0 pour faciliter la lecture
-        $account.Operations += [PSCustomObject]@{
-            LineNo     = 0
-            Date1      = $json.Data.StartDate
-            Date2      = $null
-            Descr      = 'Opening balance'
-            Location   = $null
-            Amount     = 0.00
-            Balance    = $account.StartBalance
-            Remittance = 0.00
-            Note       = $null
+            # Le format Carte de crédit est différent de Compte bancaire
+            if ($json.Data.IsCreditCard) {
+                $account.Operations += [PSCustomObject]@{
+                    Line       = 0
+                    Date1      = $json.Data.StartDate
+                    Date2      = $null
+                    Descr      = 'Opening balance'
+                    Location   = $null
+                    Amount     = 0.00
+                    Balance    = $account.StartBalance
+                    Remittance = 0.00
+                    Note       = $null
+                }
+            } else {
+                $account.Operations += [PSCustomObject]@{
+                    Line       = 0
+                    Date1      = $json.Data.StartDate
+                    Descr      = 'Opening balance'
+                    Location   = $null
+                    Amount     = 0.00
+                    Balance    = $account.StartBalance
+                    Note       = $null
+                }
+            }
+            Out-String2 -InputObject ($account.Operations | Sort-Object Line `
+            | Format-Table -AutoSize)
+
+            '-'*80
         }
-        Out-String2 -InputObject ($account.Operations | Sort-Object LineNo `
-        | Format-Table -AutoSize)
-
-        '-'*80
+    }
+    $pdfPath = (Resolve-Path ($Path -replace 'json$','pdf')).Path
+    if ($InvokePdf) {
+        Invoke-Item $pdfPath
+    } else {
+        "Invoke-Item -Path '$pdfPath'"
     }
 }

@@ -1,16 +1,16 @@
+<#
+.SYNOPSIS
+    A simple wrapper for PDFTOTEXT that does a little more
+.DESCRIPTION
+    It can run for multiple PDF using a list of files or pattern
+    It can extract text and return to standard output -PassThru
+#>
 function Get-PdfText {
-    <#
-    .SYNOPSIS
-        A simple wrapper for PDFTOTEXT that does a little more
-    .DESCRIPTION
-        It can run for multiple PDF using a list of files or pattern
-        It can extract text and return to standard output -PassThru
-    #>
     [CmdLetBinding()]
     param (
         $Path,
         $Layout = 'layout',
-        $ProgramPath = 'pdftotext.exe', # Should be avail in PATH
+        $ProgramPath = 'pdftotext.exe', # Should be avail in PATH else provide path here.
         [switch]$PassThru,
         [switch]$Force
     )

@@ -5,6 +5,8 @@ Règles de calcul:
  Les dépôts et paiements reçus doivent être positifs.
  TotalAmount = La somme de Amount pour chaque compte.
  Pour les cartes de crédit : StartBalance, EndBalance et TotalAmount doivent être négatif.
+ Si IsCreditCard, tu dois calculer le solde pour chaque ligne. Il sera égale à:
+  Balance de la ligne précédente (sinon StartBalance) + Amount de la ligne courante.
 Formatage et règles :
  Dates : ISO 8601 (YYYY-MM-DD). Date1 est toujours plus ancienne que Date2.
  Money : Nombres décimaux (ex: -45.99). Ignore l'opération si Amount = 0
@@ -15,7 +17,7 @@ Schéma JSON :
     Period: YYYY-MM, (L'année et le mois de EndDate)
     StartDate: YYYY-MM-DD,
     EndDate: YYYY-MM-DD,
-    IsCreditCard: bool,
+    IsCreditCard: bool, (Vrai seulement si est un relevé VISA ou MasterCard)
     Accounts: [{
         AccountName: string, (Le plus court possible ex: Compte-chèques = Chèques, Compte d'entreprise = Entreprise, Carte de crédit Remises = Crédit)
         AccountNumber: string,
@@ -32,7 +34,7 @@ Schéma JSON :
             Descr: string,
             Location: string or null, (Attention, il est possible que la ville se trouve dans Descr. Il faut la déplacer dans Location)
             Amount: 0.00,
-            Balance: 0.00, (Si IsCreditCard, tu dois calculer le solde)
+            Balance: 0.00,
             Remittance: 0.00, (Remise, seulement si IsCreditCard)
             Note: string or null (les autres infos sur la ligne qui n'ont pas été extraite)
         }]

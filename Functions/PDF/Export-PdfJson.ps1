@@ -1,10 +1,13 @@
 <#
 .SYNOPSIS
     Outil d'extraction de data de relevés PDF via Google Gemini
-.NOTES
-    Il faut une clé API de Gemini. La façon la plus simple de l'obtenir est d'utiliser Google AI Studio https://aistudio.google.com/api-keys.
-    Si vous avez la clé décryptée:
+.DESCRIPTION
+    Il faut une clé API de Gemini.
+    La façon la plus simple de l'obtenir est https://aistudio.google.com/api-keys.
+    Si vous avez déjà la clé décryptée, executez ceci avant de lancer la fonction :
     PS> $GeminiApiKeyEncrypted = Read-Host 'Paste API key here' -AsSecureString
+.NOTES
+    Est-ce que je devrais attacher le prompt ou la version du schéma lors de l'exécution ?
 #>
 function Export-PdfJson {
     [CmdLetBinding()]
@@ -12,8 +15,8 @@ function Export-PdfJson {
         [Parameter(Mandatory, ValueFromPipeline)]
         $Path,
 
-        [ValidateSet('gemini-2-flash', 'gemini-3-flash-preview')]
-        $Model = 'gemini-3-flash-preview'
+        [ValidateSet('gemini-2-flash', 'gemini-3-flash')]
+        $Model = 'gemini-3-flash'
     )
     begin {
         if (!$GeminiApiKeyEncrypted) {
@@ -21,6 +24,7 @@ function Export-PdfJson {
         }
         $verboseActive = $PSBoundParameters['Verbose']
         $extractTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+        $progressBar = @{  Activity = 'Exporter le data du relevé PDF' }
 
         #region fonctions privées
 
@@ -33,7 +37,7 @@ function Export-PdfJson {
             $fileBase64 = [Convert]::ToBase64String($fileBytes)
 
             $url = switch ($Model) {
-                'gemini-3-flash-preview' { "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=$(Get-ApiKey)"; break }
+                'gemini-3-flash' { "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=$(Get-ApiKey)"; break }
                 'gemini-2-flash' { "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$(Get-ApiKey)"; break }
             }
 
@@ -80,12 +84,16 @@ function Export-PdfJson {
     }
     process {
         $files = Get-ChildItem -Path $Path -Filter *.pdf -File #-Recurse
+        if ($files.Count -gt 1) { Write-Verbose "$($files.Count) files to export" }
 
         foreach ($file in $files) {
             # Vérification si JSON existe déjà ?
             $jsonPath = '{0}\{1}.json' -f $file.Directory, $file.BaseName
 
             Write-Verbose "Analyse de : $($file.Name)..."
+            if (!$verboseActive) {
+                Write-Progress @progressBar -Status 'Ask Gemini' -CurrentOperation $file.Name
+            }
             $resp = AskGemini $file.FullName
 
             Write-Verbose "Data size = $($resp.Data1.Length)"
@@ -109,7 +117,7 @@ function Export-PdfJson {
                     Module      = $MyInvocation.MyCommand.Module.Name
                     Version     = $MyInvocation.MyCommand.Module.Version.ToString()
                     ExtractTime = $extractTime
-                    Model       = $resp.Model
+                    Model       = $Model # $resp.Model retourne preview même si ce n'est plus le cas
                     TokenCount  = $resp.TokenCount
                     Duration    = $resp.Duration
                 }
@@ -117,11 +125,12 @@ function Export-PdfJson {
 
             $obj | ConvertTo-Json -Compress -Depth 10 | Out-File $jsonPath
 
-            return [PSCustomObject]@{
+            [PSCustomObject]@{
                 JSON     = Get-ChildItem $jsonPath
                 Success  = $true
                 Duration = $obj.Stat.Duration
             }
         }
+
     }
 }

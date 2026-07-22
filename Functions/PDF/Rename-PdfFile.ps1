@@ -44,6 +44,7 @@ function Rename-PdfFile {
                 Institution = $i
                 RenameCmd   = $command
             }
+            if ($Force) { $command | %{ Invoke-Expression $_ } }
         } else {
             Write-Warning "$basePath.json was not found"
         }
